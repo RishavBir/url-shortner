@@ -1,11 +1,14 @@
-const mongoose = require ("mongoose")
-const urlModel = require ("../models/urlModel.js")
-const validUrl = require ("valid-url")
-const shortid= require ("shortid")
-const redis = require("redis");
-const {promisify} = require ("util");
 
- //connect with redis
+const express = require('express')
+const validUrl = require('valid-url')
+const shortid = require('shortid')
+const urlModel = require('../models/urlModel')
+
+const redis=require("redis")
+
+const { promisify } = require("util")
+
+//connect with redis
 
 const redisClient = redis.createClient(
     17450,
@@ -20,41 +23,58 @@ redisClient.on("connect", async function(){
     console.log("Connected to Redis..");
 });
 
-//connection setup for redis
-
-const SET_ASYNC = promisify( redisClient.SET).bind(redisClient)
-const GET_ASYNC = promisify ( redisClient.GET).bind(redisClient)
+const SET_ASYNC = promisify (redisClient.SET).bind(redisClient);
+const GET_ASYNC = promisify(redisClient.GET).bind(redisClient)
 
 
+const isValid=function(value){
 
- const baseUrl = 'http://localhost:3000'
+    if(typeof value==='undefined'||value===null) return false
+    if(typeof value ==='string' && value.trim().length===0) return false
+   
+    return true;
+   }
+
+  const baseUrl = 'http://localhost:3000'
 
 
-const createUrl = async (req, res) => {
+  // First API
+
+  const createUrl = async (req, res) => {
+    
+    try {
     let data=req.body
        
      let longUrl =req.body.longUrl
+     
+     if(Object.keys(data).length==0) {
+     return res.status(400).send({status:false,message:"Empty, body is provided"})}
 
-     if(!data.longUrl) {
-             return res.status(400).send({status:false, msg: "plz enter Long url"})
-    }
+     if(!isValid(longUrl)){
+        return res.status(400).send({status:false,msg:"longUrl provided is invalid"})
+        }
     
-      if (validUrl.isUri(data.longUrl)) {
-        try {
-  
+      if (!validUrl.isUri(longUrl)) {
+          return  res.status(400).send({ status: false, message: 'Invalid longUrl' })
+      }
+       
+       
             let geturl = await GET_ASYNC(`${longUrl}`)
-            if(geturl) return res.status(200).send({status:true,message:"already in redis",data:JSON.parse(geturl)})
+            if(geturl)
+             return res.status(200).send({status:true,message:"already in redis",data:JSON.parse(geturl)})
+             console.log(geturl)
 
             let url = await urlModel.findOne({ longUrl:data.longUrl })
-
-            if (url) {
+             if (url) {
                 res.status(200).send({status:true,message:"present in DB success",data:url})
+                console.log(url)
             }
-            else {  data.urlCode = shortid.generate()
+            else { 
+                 data.urlCode = shortid.generate().toLowerCase()
                  data.shortUrl = baseUrl + '/' + data.urlCode
                
-                 let url=await urlModel.create(data)
-                             
+                 let url = await urlModel.create(data)
+                          
                  await SET_ASYNC(`${data.shortUrl}`,`${longUrl}`)
                  await SET_ASYNC(`${longUrl}`,JSON.stringify({data}))
                 
@@ -66,35 +86,39 @@ const createUrl = async (req, res) => {
             console.log(err)
             res.status(500).send('Server Error')
         }
-    } else {
-        res.status(400).send({ status: false, message: 'Invalid longUrl' })
-    }
-}
+     }
 
-// //************************************************************************************** */
+//********************************//
+
+// second API
 
 const getUrl = async (req, res) => {
     try {
-  
-        let geturl = await GET_ASYNC(`${req.params.urlCode}`)
+                   
+        let geturl = await GET_ASYNC(`http://localhost:3000/${req.params.urlCode}`)
         
-        let x= JSON.parse(geturl)
        
         if(geturl) {
-        return res.redirect(x.data.longUrl)}
-        else {
-        const url = await urlModel.findOne({
-            urlCode: req.params.urlCode
-        })
+            console.log("came from redis")
+            return res.redirect(geturl)
+        }
+        else { console.log("from db")
+        console.log(req.params.urlCode)
+
+        const url = await urlModel.findOne({ urlCode: req.params.urlCode})
         if (url) {
-            return res.redirect(url.longUrl)
+        console.log(url)
+        return res.redirect(url.longUrl)
+
         }
         else {
+
             return res.status(404).send({status: false, message: 'No URL Found'})
         }
-      }
-}
 
+    }
+}
+    
     catch (err) {
         console.error(err)
         res.status(500).send('Server Error')
@@ -102,9 +126,47 @@ const getUrl = async (req, res) => {
 }
 
 
+module.exports.getUrl = getUrl
+module.exports.createUrl = createUrl
 
 
 
 
-module.exports.createUrl=createUrl
-module.exports.getUrl=getUrl
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
