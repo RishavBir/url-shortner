@@ -8,13 +8,13 @@ const mongoose = require("mongoose")
 const app = express();
 
 app.use(bodyparser.json())
-app.use(bodyparser.urlencoded({extended:true}))
+app.use(bodyparser.urlencoded({ extended: true }))
 
-mongoose.connect("mongodb+srv://pattamu:bqPvauaKLfc6SIBP@cluster0.eqx53.mongodb.net/group51Database",{
-    useNewurlParser:true
-}).then(()=>{
+mongoose.connect("mongodb+srv://pattamu:bqPvauaKLfc6SIBP@cluster0.eqx53.mongodb.net/group51Database", {
+    useNewurlParser: true
+}).then(() => {
     console.log("MongoDb is conected")
-}).catch(err=>console.log(err))
+}).catch(err => console.log(err))
 
 app.use("/", route)
 
