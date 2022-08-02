@@ -13,20 +13,20 @@ const { promisify } = require("util")
 //connect with redis
 
 const redisClient = redis.createClient(
-    17450,
-    "redis-17450.c264.ap-south-1-1.ec2.cloud.redislabs.com",
-    { no_ready_check: true }
-);
-redisClient.auth("861FANU5CYg9DBmJfHclUacggZsSCUWR", function (err) {
+    18998,
+    "redis-18998.c80.us-east-1-2.ec2.cloud.redislabs.com",                   
+    { no_ready_check: true }   
+  );
+  redisClient.auth("20s1SErw7F9z7P4ZTGMXsD83tVV26SdU", function (err) {       
     if (err) throw err;
-});
+  });
+  
+  redisClient.on("connect", async function () {
+    console.log("Connected to Redis.......");
+  });
 
-redisClient.on("connect", async function () {
-    console.log("Connected to Redis..");
-});
-
-const SET_ASYNC = promisify(redisClient.SET).bind(redisClient);
-const GET_ASYNC = promisify(redisClient.GET).bind(redisClient)
+const SET_ASYNC = promisify(redisClient.SET).bind(redisClient);   // promisify convert callback func into promised based func.
+const GET_ASYNC = promisify(redisClient.GET).bind(redisClient)         
 
 
 const isValid = function (value) {
